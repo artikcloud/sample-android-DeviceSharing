@@ -18,12 +18,11 @@ package cloud.artik.example.sharedevice;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -47,8 +46,8 @@ import cloud.artik.model.User;
 public class DeviceActivity extends AppCompatActivity {
 
 	private static final int INDENT_LEVEL = 2;
-
 	private static Service service;
+	
 	private AuthStateDAL auth;
 
 	private EditText sendToEmailView = null;
@@ -61,7 +60,8 @@ public class DeviceActivity extends AppCompatActivity {
 
 	private TextView apiResponseTextView = null;
 	private TextView loginInfoTextView = null;
-
+	
+	private String deviceName = null;
 	private User user;
 
 	@Override
@@ -69,56 +69,39 @@ public class DeviceActivity extends AppCompatActivity {
 
 		super.onCreate(savedInstanceState);
 
-		Log.d("App", "DeviceActivity.java => onCreate()");
-
 		setContentView(R.layout.activity_device);
 
-		service = new Service(DeviceActivity.this);
+		//handles setting and retrieving our user token
 		auth = new AuthStateDAL(DeviceActivity.this);
 
-		/**
-		 *  UI elements
-		 */
-		buttonShareDevice = (Button) findViewById(R.id.btn_share_device);
-		buttonShareStatus = (Button) findViewById(R.id.btn_share_status);
-		buttonCreateDevice = (Button) findViewById(R.id.btn_create_device);
-		buttonLogin = (Button) findViewById(R.id.btn_login);
+		//facade for our ARITK Cloud REST calls
+		service = new Service(DeviceActivity.this);
 
-		apiResponseTextView = (TextView) findViewById(R.id.textview_api_response);
-		loginInfoTextView = (TextView) findViewById(R.id.textview_login_info);
+		// UI elements
+		initUIElements();
 
-		// create a simple device name for the sample
-		final String deviceName = generateDeviceName();
-
-		TextView txtViewCreateDeviceInfo = (TextView) findViewById(R.id.txt_create_device_info);
-		txtViewCreateDeviceInfo.setText(String.format(txtViewCreateDeviceInfo.getText().toString(), deviceName));
-
-		TextView txtViewShareDeviceInfo = (TextView) findViewById(R.id.txt_share_device_info);
-		txtViewShareDeviceInfo.setText(String.format(txtViewShareDeviceInfo.getText().toString(), deviceName));
-
-		TextView txtViewShareStatusInfo = (TextView) findViewById(R.id.txt_share_status_info);
-		txtViewShareStatusInfo.setText(String.format(txtViewShareStatusInfo.getText().toString(), deviceName));
-
-		buttonCreateDevice.setEnabled(false);
+		// get and display user profile information
 		service.getUserProfileAsync(new Service.APICallback() {
 
 			@Override
 			public void onSuccess(JSONObject result) {
 
-				printToConsole(apiResponseTextView, "< Success getUserProfileAsync()", result);
+
+				printResponse("getUserProfileAsync()", result + "\n\n", apiResponseTextView);
+
 				buttonLogin.setVisibility(View.GONE);
 				buttonCreateDevice.setEnabled(true);
 
 				try {
 
-					// user profile is wrapped in "data" response
-
+					// data is wrapped in a "data" response
 					JSONObject userProfileResponse = result.getJSONObject("data");
 					user = new Gson().fromJson(userProfileResponse.toString(), User.class);
 					displayAuthInfo();
 
 				} catch (JSONException e) {
 					e.printStackTrace();
+					printResponse("Error extracting data for getUserProfileAsync()", e.getMessage(), apiResponseTextView);
 					buttonLogin.setVisibility(View.VISIBLE);
 				}
 			}
@@ -131,10 +114,10 @@ public class DeviceActivity extends AppCompatActivity {
 				if (error.networkResponse != null && error.networkResponse.data != null) {
 
 					errorMessage = new String(error.networkResponse.data);
+					return;
 				}
 
-				printToConsole(apiResponseTextView,
-								"Please Login.", "It does not appear you are logged in or your token has expired.");
+				printResponse("Please Login.", "Does not appear you are logged in or your token has expired.", apiResponseTextView);
 
 				buttonLogin.setVisibility(View.VISIBLE);
 
@@ -142,6 +125,30 @@ public class DeviceActivity extends AppCompatActivity {
 		});
 
 
+
+
+	}
+
+	private void initUIElements() {
+
+		//ui elements
+		buttonShareDevice = (Button) findViewById(R.id.btn_share_device);
+		buttonShareStatus = (Button) findViewById(R.id.btn_share_status);
+		buttonCreateDevice = (Button) findViewById(R.id.btn_create_device);
+		buttonLogin = (Button) findViewById(R.id.btn_login);
+
+		apiResponseTextView = (TextView) findViewById(R.id.textview_api_response);
+		loginInfoTextView = (TextView) findViewById(R.id.textview_login_info);
+
+		apiResponseTextView.setTextIsSelectable(true);
+		apiResponseTextView.setTextSize(12);
+
+		loginInfoTextView.setTextIsSelectable(true);
+		loginInfoTextView.setTextSize(12);
+
+		buttonCreateDevice.setEnabled(false);
+
+		// init click handlers
 		buttonCreateDevice.setOnClickListener(new View.OnClickListener() {
 
 			@Override
@@ -158,44 +165,40 @@ public class DeviceActivity extends AppCompatActivity {
 
 				} catch (JSONException e) {
 					e.printStackTrace();
-				}
+					return;
 
-				Log.d("App", "Error:" + body.toString());
+				}
 
 				service.createDeviceAsync(body, new Service.APICallback() {
 
 					@Override
 					public void onSuccess(JSONObject result) {
 
-						//sample success response:
-						//{"data":{"id":"4631d5b736994678ac29992f4565ef34","uid":"e03d4458bc8b462db048775dc17107f9","dtid":"dtce45703593274ba0b4feedb83bc152d8","name":"XYZ Throw - 754.0","manifestVersion":1,"manifestVersionPolicy":"LATEST","needProviderAuth":false,"cloudAuthorization":"NO_AUTHORIZATION","eid":null,"certificateSignature":null,"certificateInfo":null,"createdOn":1505782728000,"connected":true}}
+						//sample response
+						//{"connected":true,"createdOn":1507003156000,"dtid":"dtce45703593274ba0b4feedb83bc152d8","id":"c35f2a4eb7ba45718f6715fecd0b297f","manifestVersion":1,"manifestVersionPolicy":"LATEST","name":"Sharing Demo A-56","needProviderAuth":false,"properties":{},"providerCredentials":{},"uid":"<redacted>"}
 
 						buttonCreateDevice.setEnabled(false);
-
-						Log.d("App", "successfully created device:" + result.toString());
-
-						apiResponseTextView.setText(formatResponse("Create Share Success with data:", result));
+						printSuccessResponse("createDeviceAsync()", result);
 
 						try {
+
+							// here we save above data for retrieving device ID later to make other api calls.
+							// data is wrapped in a "data" response
 							JSONObject resultData = result.getJSONObject("data");
-							String shareID = resultData.getString("id");
-
-							//TODO:  do not use ARTIK class here, it might change.  create your own class
 							Device device = new Gson().fromJson(resultData.toString(), Device.class);
-
-							auth.writeDeviceState(device);
+							service.writeDeviceState(device);
 
 						} catch (JSONException e) {
 							e.printStackTrace();
 						}
+
 					}
 
-					//TODO:  make sure all of them say error.getMessage();
 					@Override
 					public void onError(VolleyError error) {
 
-						Log.d("App", "error created device:" + error.getMessage());
-						apiResponseTextView.setText(error.toString());
+						printErrorResponse("createDeviceAsync()", error);
+
 					}
 
 				});
@@ -221,8 +224,6 @@ public class DeviceActivity extends AppCompatActivity {
 				Intent intent = new Intent(DeviceActivity.this, ListSharesActivity.class);
 				intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 				startActivity(intent);
-
-
 			}
 		});
 
@@ -234,8 +235,6 @@ public class DeviceActivity extends AppCompatActivity {
 				Intent intent = new Intent(DeviceActivity.this, LoginActivity.class);
 				startActivity(intent);
 				finish();
-
-
 			}
 		});
 
@@ -246,6 +245,20 @@ public class DeviceActivity extends AppCompatActivity {
 			}
 		});
 
+
+		// device name for session
+		deviceName = generateDeviceName();
+
+		TextView txtViewCreateDeviceInfo = (TextView) findViewById(R.id.txt_create_device_info);
+		txtViewCreateDeviceInfo.setText(String.format(txtViewCreateDeviceInfo.getText().toString(), deviceName));
+
+		TextView txtViewShareDeviceInfo = (TextView) findViewById(R.id.txt_share_device_info);
+		txtViewShareDeviceInfo.setText(String.format(txtViewShareDeviceInfo.getText().toString(), deviceName));
+
+		TextView txtViewShareStatusInfo = (TextView) findViewById(R.id.txt_share_status_info);
+		txtViewShareStatusInfo.setText(String.format(txtViewShareStatusInfo.getText().toString(), deviceName));
+
+
 	}
 
 	private void displayAuthInfo() {
@@ -253,8 +266,8 @@ public class DeviceActivity extends AppCompatActivity {
 
 		AuthState authState = auth.readAuthState();
 
-		String userEmail = "\nEmail: " + user.getEmail();
-		String userToken = "\nUser Token: " + authState.getAccessToken().toString();
+		String userEmail = "\nEmail: " + user.getEmail() + " (change)";
+		String userToken = "\nUser Token: " + authState.getAccessToken();
 		String expiration = "\nExpires: " + new Date(authState.getAccessTokenExpirationTime()).toString();
 
 		loginInfoTextView.setTextIsSelectable(true);
@@ -298,20 +311,18 @@ public class DeviceActivity extends AppCompatActivity {
 									e.printStackTrace();
 								}
 
-								service.shareDeviceAsync(auth.readDeviceState().getId(), body, new Service.APICallback() {
+								service.shareDeviceAsync(service.readDeviceState().getId(), body, new Service.APICallback() {
 
 									@Override
 									public void onSuccess(JSONObject result) {
 
-										Log.d("App", "Got success from shareDeviceAsync():" + result.toString());
-										printConsole(result.toString());
+										printSuccessResponse("sharedDeviceAsync()", result);
 									}
 
 									@Override
 									public void onError(VolleyError error) {
 
-										Log.d("App", "Got error from shareDeviceAsync():" + (new String(error.networkResponse.data)));
-										printConsole(new String(error.networkResponse.data));
+										printErrorResponse("sharedDeviceAsync()", error);
 
 									}
 								});
@@ -344,7 +355,7 @@ public class DeviceActivity extends AppCompatActivity {
 							public void onClick(DialogInterface dialog, int id) {
 
 								// list all shares for device
-								service.listSharesForDeviceAsync(auth.readDeviceState().getId(), new Service.APICallback() {
+								service.listDeviceSharesAsync(service.readDeviceState().getId(), new Service.APICallback() {
 
 									@Override
 									public void onSuccess(JSONObject result) {
@@ -357,9 +368,9 @@ public class DeviceActivity extends AppCompatActivity {
 									public void onError(VolleyError error) {
 
 										Log.d("app", "Error — Shares for device: " + error.toString());
+
 									}
 								});
-
 
 							}
 						})
@@ -394,41 +405,40 @@ public class DeviceActivity extends AppCompatActivity {
 		return builder.toString();
 	}
 
-	//refactor
-	@Deprecated
-	private void printConsole(final String text) {
-
-		DeviceActivity.this.runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-
-				apiResponseTextView.setText(text);
-
-			}
-		});
-	}
-
-	private void printToConsole(TextView view, String title, String description) {
-
-		view.setTextIsSelectable(true);
-		view.setTextSize(12);
-
-		String content = view.getText().toString();
+	private void printResponse(String title, String description, TextView view) {
 
 		view.setText(title + "\n");
 		view.append(description + "\n");
-		view.append(content + "\n\n");
 	}
 
-	private void printToConsole(TextView view, String title, JSONObject description) {
-
-		Log.d("TAG", "called consoleAppend()");
+	private void printResponse(String title, JSONObject description, TextView view) {
 
 		try {
-			printToConsole(view, title, description.toString(INDENT_LEVEL));
+			printResponse(title, description.toString(INDENT_LEVEL), view);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void printSuccessResponse(String title, JSONObject result) {
+
+		Log.d("App", String.format("Success for [%s]:\n", title) + result.toString());
+		printResponse(String.format("Success for [%s]:\n", title), result.toString(), apiResponseTextView);
+
+	}
+
+	private void printErrorResponse(String title, VolleyError error) {
+
+		Log.d("App", String.format("There was an error for: [%s]\n", title) + error.getMessage());
+
+		if(error.networkResponse != null && error.networkResponse.data != null) {
+			Log.d("App", String.format("There was an error for: [%s]\n", title) + (new String(error.networkResponse.data)));
+			printResponse(String.format("There was an error for: [%s]\n", title), (new String(error.networkResponse.data)), apiResponseTextView);
+		}
+		else {
+			printResponse(String.format("There was an error for: [%s]\n", title), error.getMessage(), apiResponseTextView);
+		}
+
 	}
 
 	private String generateDeviceName() {

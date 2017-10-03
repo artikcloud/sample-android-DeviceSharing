@@ -220,10 +220,6 @@ public class LoginActivity extends AppCompatActivity {
 		mButtonSignIn.setVisibility(View.INVISIBLE);
 		mButtonContinue.setVisibility(View.VISIBLE);
 
-		//getAndSaveUserProfile();
-
-		//showAuthInfo();
-
 		Intent intent = new Intent(LoginActivity.this, DeviceActivity.class);
 		startActivity(intent);
 		finish();

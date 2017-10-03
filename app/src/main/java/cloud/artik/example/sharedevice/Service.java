@@ -17,6 +17,10 @@
 package cloud.artik.example.sharedevice;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,22 +32,33 @@ import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
 
+import net.openid.appauth.AuthState;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.ListIterator;
 import java.util.Map;
 
-import cloud.artik.client.ApiClient;
+import cloud.artik.client.JSON;
 import cloud.artik.example.oauth.AuthStateDAL;
+import cloud.artik.model.Device;
+import cloud.artik.model.DeviceShareInfo;
+import cloud.artik.model.User;
 
 
 public class Service {
 
-	private static final String URL_ENDPOINT = "https://api.artik.cloud/v1.1";
 	private Activity context = null;
-	final static ApiClient apiClient = null;
+
+	private static final String API_URL = "https://api.artik.cloud/v1.1";
+
+	//used to get / retrieve values from shared prefererences
+	private static final String DEVICE_PREFERENCES_NAME = "DEVICE_STATE";
+	private static final String DEVICE_STATE = "DEVICE_STATE";
 
 	Service(Activity context) {
 		this.context = context;
@@ -55,323 +70,123 @@ public class Service {
 		void onError(VolleyError error);
 	}
 
-	@Deprecated
-	public void getUserProfile(final APICallback callback) {
-
-		Log.d("App", "getting /users/self");
-
-		String path = "/users/self";
-
-		JSONObject body = null;
-
-		makeAPICall(URL_ENDPOINT + path, Request.Method.GET, body, callback);
-
-	}
-
 	public void getUserProfileAsync(final APICallback callback) {
 
-		Log.d("App", "Calling getUserProfileAsync()");
-
 		String path = "/users/self";
-
 		JSONObject body = null;
 
-		makeAPICallAsync(URL_ENDPOINT + path, Request.Method.GET, body, callback);
-
-	}
-
-
-	//TODO: remove userID from parameter
-	public void listUserDevicesAsync(String userId, final APICallback callback) {
-
-		//TODO: query options
-		String path = "/users/" + userId + "/devices?includeShareInfo=true";
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "listUserDevicesAsync()");
-
-		JSONObject body = null;
-
-		makeAPICallAsync(URL_ENDPOINT + path, Request.Method.GET, body, callback);
-
-	}
-
-	@Deprecated
-	public void createDevice(JSONObject body) {
-
-		String path = "/devices";
-
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "makeAPICall()");
-
-		JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, endpoint, body,
-
-						new Response.Listener<JSONObject>() {
-
-							@Override
-							public void onResponse(JSONObject response) {
-								Log.d("App", "Got Response()" + response.toString());
-								//mTxtDisplay.setText("Response: " + response.toString());
-							}
-
-						}, new Response.ErrorListener() {
-
-			@Override
-			public void onErrorResponse(VolleyError error) {
-				// TODO Auto-generated method stub
-
-				if (error != null) {
-					Log.d("App Error", error.toString());
-				}
-
-			}
-
-
-		}) {
-
-			@Override
-			public Map<String, String> getHeaders() throws AuthFailureError {
-
-				AuthStateDAL authState = new AuthStateDAL(context);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
-
-
-				return params;
-
-			}
-		};
-
-
-		RequestQueue requestQueue = Volley.newRequestQueue(context);
-		requestQueue.add(jsonRequest);
+		makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
 
 	}
 
 	public void createDeviceAsync(JSONObject body, APICallback callback) {
 
 		String path = "/devices";
-
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "makeAPICall()");
-
-		makeAPICallAsync(URL_ENDPOINT + path, Request.Method.POST, body, callback);
-	}
-
-	@Deprecated
-	public void shareDevice(String deviceId, JSONObject body) {
-
-		String path = "/devices/" + deviceId + "/shares";
-
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "makeAPICall()");
-
-		JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, endpoint, body,
-
-						new Response.Listener<JSONObject>() {
-
-							@Override
-							public void onResponse(JSONObject response) {
-								Log.d("App", "Got Response for shareDevice()" + response.toString());
-								//mTxtDisplay.setText("Response: " + response.toString());
-							}
-
-						}, new Response.ErrorListener() {
-
-			@Override
-			public void onErrorResponse(VolleyError error) {
-				if (error == null || error.networkResponse == null) {
-					return;
-				}
-
-				String body;
-				//get status code here
-				final String statusCode = String.valueOf(error.networkResponse.statusCode);
-				//get response body and parse with appropriate encoding
-				try {
-					body = new String(error.networkResponse.data, "UTF-8");
-
-					Log.d("Error Message", statusCode + ":" + body);
-				} catch (UnsupportedEncodingException e) {
-					// exception
-				}
-
-			}
-
-
-		}) {
-
-			@Override
-			public Map<String, String> getHeaders() throws AuthFailureError {
-
-				AuthStateDAL authState = new AuthStateDAL(context);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
-
-
-				return params;
-
-			}
-		};
-
-
-		RequestQueue requestQueue = Volley.newRequestQueue(context);
-		requestQueue.add(jsonRequest);
-
+		makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
 	}
 
 	public void shareDeviceAsync(String deviceId, JSONObject body, APICallback callback) {
 
-		String path = "/devices/" + deviceId + "/shares";
-
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "makeAPICall()");
-
-		makeAPICallAsync(URL_ENDPOINT + path, Request.Method.POST, body, callback);
+		String path = String.format("/devices/%s/shares", deviceId);
+		makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
 	}
 
 
-	public void listSharesForDeviceAsync(String deviceId, APICallback callback) {
+	public void listDeviceSharesAsync(String deviceId, APICallback callback) {
 
-		String path = "/devices/" + deviceId + "/shares";
-		String endpoint = URL_ENDPOINT + path;
-
-		Log.d("App", "list shares ()");
-
+		String path = String.format("/devices/%s/shares", deviceId);
 		JSONObject body = null;
+		makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
 
-		makeAPICallAsync(URL_ENDPOINT + path, Request.Method.GET, body, callback);
 	}
 
-	@Deprecated
-	public void makeAPICall(String url, int requestMethod, JSONObject body, final APICallback callback) {
+	//body requires "email": sentToEmailAddress per API spec
+	public void deleteDeviceShareAsync(String deviceId, String shareId, APICallback callback) {
 
-		Log.d("App", "makeAPICall()");
-
-		JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url, body,
-
-						new Response.Listener<JSONObject>() {
-
-							@Override
-							public void onResponse(JSONObject response) {
-								Log.d("App", "Got Response()" + response.toString());
-
-								callback.onSuccess(response);
-								//mTxtDisplay.setText("Response: " + response.toString());
-							}
-
-						}, new Response.ErrorListener() {
-
-			@Override
-			public void onErrorResponse(VolleyError error) {
-				// TODO Auto-generated method stub
-
-				if (error != null) {
-					Log.d("App Error", error.toString());
-				}
-
-
-			}
-
-
-		}) {
-
-			@Override
-			public Map<String, String> getHeaders() throws AuthFailureError {
-
-				AuthStateDAL authState = new AuthStateDAL(context);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
-
-
-				return params;
-
-			}
-		};
-
-
-		RequestQueue requestQueue = Volley.newRequestQueue(context);
-		requestQueue.add(jsonRequest);
+		String path = String.format("/devices/%s/shares/%s", deviceId, shareId);
+		JSONObject body = null;
+		makeAPICallAsync(API_URL + path, Request.Method.DELETE, body, callback);
 	}
 
 	public void makeAPICallAsync(String url, int requestMethod, JSONObject body, final APICallback callback) {
 
-		Log.d("App", "makeAPICallAsync()");
 
 		AuthStateDAL authState = new AuthStateDAL(context);
 
-		JsonObjectRequest jsonRequest = new JsonObjectRequest(requestMethod, url, body,
-
-						new Response.Listener<JSONObject>() {
-
-							@Override
-							public void onResponse(JSONObject response) {
-								Log.d("App", "Got Response()" + response.toString());
-
-								callback.onSuccess(response);
-
-							}
-
-						},
-
-						new Response.ErrorListener() {
-
-							@Override
-							public void onErrorResponse(VolleyError error) {
-
-								if (error.networkResponse == null) {
-
-									if (error.getClass().equals(TimeoutError.class)) {
-
-										//timeout error
-										Toast.makeText(context, "Request Timed Out. Check your network connection.",
-														Toast.LENGTH_LONG).show();
-									}
-
-								}
-
-								if (error.networkResponse != null && error.networkResponse.data != null) {
-									Log.d("App Error", "Error description:" + (new String(error.networkResponse.data)));
-									callback.onError(error);
-								}
-
-
-							}
-
-						}) {
+		Response.Listener<JSONObject> successListener = new Response.Listener<JSONObject>() {
 
 			@Override
-			public Map<String, String> getHeaders() throws AuthFailureError {
+			public void onResponse(JSONObject response) {
 
-				AuthStateDAL authState = new AuthStateDAL(context);
-				Map<String, String> params = new HashMap<String, String>();
-				params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
-				params.put("Content-type", "application/json; charset=utf-8");
+				callback.onSuccess(response);
+			}
 
+		};
 
-				return params;
+		Response.ErrorListener errorListener = new Response.ErrorListener() {
+
+			@Override
+			public void onErrorResponse(VolleyError error) {
+
+				if (error.networkResponse == null) {
+
+					if (error.getClass().equals(TimeoutError.class)) {
+
+						//timeout error
+						Toast.makeText(context, "Request Timed Out. Check your network connection.",
+										Toast.LENGTH_LONG).show();
+					}
+
+				}
+
+				if (error.networkResponse != null && error.networkResponse.data != null) {
+					Log.d("App Error", "Error description:" + (new String(error.networkResponse.data)));
+					callback.onError(error);
+				}
 
 			}
 		};
 
+		JsonObjectRequest jsonRequest =
+						new JsonObjectRequest(requestMethod, url, body, successListener, errorListener) {
+
+							@Override
+							public Map<String, String> getHeaders() throws AuthFailureError {
+
+								AuthStateDAL authState = new AuthStateDAL(context);
+								Map<String, String> params = new HashMap<String, String>();
+								params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
+								params.put("Content-type", "application/json; charset=utf-8");
+
+
+								return params;
+
+							}
+						};
 
 		RequestQueue requestQueue = Volley.newRequestQueue(context);
 		requestQueue.add(jsonRequest);
 	}
 
 
-	//TODO rename method name, & implement as needed as singleton ...
-	public ApiClient getApiClient() {
+	//cache for storing the device (ie: deviceId) created for this demo
+	public void writeDeviceState(@NonNull Device state) {
+		SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		authPrefs.edit()
+						.putString(DEVICE_STATE, new Gson().toJson(state))
+						.apply();
+	}
 
-		// Access the RequestQueue through your singleton class.
-		// MySingleton.getInstance(this).addToRequestQueue(jsObjRequest);
-
-		return apiClient;
-
+	//cache for retrieving the device (ie: deviceId) created for this demo
+	public Device readDeviceState() {
+		SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		String stateStr = authPrefs.getString(DEVICE_STATE, null);
+		if (!TextUtils.isEmpty(stateStr)) {
+			Log.d("MyApp", "Serializing this data to Device class:" + stateStr);
+			Device device = new Gson().fromJson(stateStr, Device.class);
+			return device;
+		}
+		return new Device();
 	}
 
 

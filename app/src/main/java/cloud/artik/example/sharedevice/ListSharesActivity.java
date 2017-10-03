@@ -16,11 +16,10 @@
 
 package cloud.artik.example.sharedevice;
 
-import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -39,167 +38,108 @@ import java.util.ArrayList;
 import cloud.artik.example.R;
 import cloud.artik.example.oauth.AuthStateDAL;
 
-/**
- * Activity to see `shares` you have made for a device
- */
-
 public class ListSharesActivity extends AppCompatActivity {
 
-	Service service;
+	//used to retrieve logged in user token
 	AuthStateDAL auth;
-	ListView listView;
+	//wrapper for rest api
+	Service service;
 
+
+	//list view and adapter for listing the device share status
+	ListView listView;
 	ArrayList<String> listItems;
 	ArrayAdapter<String> adapter;
 
+	//show a delete share dialog
 	AlertDialog deleteShareDialog = null;
-
-	public static class AlertDialogBuilder {
-
-
-		public static AlertDialog create(
-						String dialogTitle,
-						String dialogMessage,
-						String confirmButton,
-						String cancelButton,
-						View view,
-						DialogInterface.OnClickListener listener,
-						Context ctx) {
-
-			AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-			builder.setTitle(dialogTitle);
-			builder.setMessage(dialogMessage);
-
-			builder.setPositiveButton(confirmButton, listener);
-
-			return builder.create();
-		}
-
-	}
-
-	public AlertDialog getShareDeviceDialog() {
-
-		if (deleteShareDialog != null) return deleteShareDialog;
-
-		AlertDialog.Builder builder = new AlertDialog.Builder(ListSharesActivity.this);
-
-		builder
-						.setTitle("Delete Share")
-						.setMessage("Are you sure you want to stop sharing this device?");
-
-
-		builder.setPositiveButton("Delete Share", new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialog, int id) {
-
-				//api call delete
-			}
-		})
-						.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog, int id) {
-								// cancel
-							}
-						});
-
-		deleteShareDialog = builder.create();
-		return deleteShareDialog;
-	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_list_shares);
 
-		service = new Service(ListSharesActivity.this);
 		auth = new AuthStateDAL(ListSharesActivity.this);
+		service = new Service(ListSharesActivity.this);
+
+		initListView();
+		initListViewData();
+
+	}
+
+	private void initListView() {
+
 		listView = (ListView) findViewById(R.id.shares_list);
 		listItems = new ArrayList<String>();
+		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
 
 		listItems.add("Please wait ... ");
-
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
 		listView.setAdapter(adapter);
-
 		adapter.notifyDataSetChanged();
 
 		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			@Override
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-			}
-
-		});
-
-		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-				Log.d("My App", "Button 'Share Device' clicked");
+				JSONObject shareStatusInfo = null;
 
-				//AlertDialog dialog = getShareDeviceDialog();
+				String shareId = null;
+				String deviceId = null;
 
-				View dialogView = null;
+				try {
 
-				AlertDialog dialog = AlertDialogBuilder.create(
-								"Delete Share",
-								"Are you sure you want to delete?",
-								"Delete Share", "Cancel",
-								dialogView,
-								new DialogInterface.OnClickListener() {
+					//listview contains response from earlier with share ID needed for deleting.
+					shareStatusInfo = new JSONObject((String) listView.getItemAtPosition(position));
+					shareId = shareStatusInfo.getString("id");
+					deviceId = service.readDeviceState().getId();
 
-									@Override
-									public void onClick(DialogInterface dialog, int which) {
+				} catch (JSONException e) {
+					e.printStackTrace();
+					return;
+				}
 
-										//TODO: implement delete
-										Log.d("App", "Button was clicked");
-
-									}
-
-								}, ListSharesActivity.this);
-
-
+				AlertDialog dialog = getDialogDeleteShare(deviceId, shareId);
 				dialog.show();
 
 			}
 
 		});
 
-		Log.d("app", "list shares for device: " + auth.readDeviceState().getId());
+	}
 
-		service.listSharesForDeviceAsync(auth.readDeviceState().getId(), new Service.APICallback() {
+	private void initListViewData() {
+
+		service.listDeviceSharesAsync(service.readDeviceState().getId(), new Service.APICallback() {
 
 			@Override
 			public void onSuccess(JSONObject result) {
 
-				Log.d("App", "Got listShares result: " + result);
+				Log.d("App", "success list shares: " + result);
+
+				//sample response
+				//{"data":{"shares":[{"id":"484d3d54506748928a74c7ba7bd2cce6","email":"email...@gmail.com","status":"PENDING","sharedOn":1507003192000}]},"total":1,"offset":0,"count":1}
+
 
 				listItems.clear();
 
 				try {
-
-					// sample response
-
-					//{"data":{"shares":[{"id":"f270afd233614200a48070ea634fa328","email":"<REDACTED>","status":"PENDING","sharedOn":1505516894000},
-					//{"id":"a2203a15857e4cf29f1e3e142ed80f4a","email":"<REDACTED>","status":"PENDING","sharedOn":1505516822000}]},"total":2,"offset":0,"count":2}
 
 					JSONObject shares = result.getJSONObject("data");
 					JSONArray sharesList = shares.getJSONArray("shares");
 
 					if (sharesList.length() == 0) {
 
-						listItems.add("\nIt does not appear you have shared the device with anyone.  Go back and \n\n" +
+						listItems.add("\nIt does not appear your device is shared with anyone.  Go back and \n\n" +
 										"1) `Create Device` (if not already), then \n" +
-										"2) `Share Device` to send an email invitation");
+										"2) `Share Device` to send a share email invitation");
 
 						adapter.notifyDataSetChanged();
 					}
 
 					for (int i = 0; i < sharesList.length(); i++) {
+
 						JSONObject shareInfo = sharesList.getJSONObject(i);
-
-						Log.d("App", "Share Info:" + shareInfo);
-
 						listItems.add(shareInfo.toString(2));
 
 					}
@@ -215,16 +155,63 @@ public class ListSharesActivity extends AppCompatActivity {
 			@Override
 			public void onError(VolleyError error) {
 
-				Log.d("App", "Got listShares result: " + error);
+				Log.d("App", "Error listing shares: " + error);
 
 				listItems.clear();
-				Toast toast = Toast.makeText(ListSharesActivity.this, "Error: " + new String(error.networkResponse.data), Toast.LENGTH_LONG);
+				Toast toast = Toast.makeText(
+								ListSharesActivity.this, "Error: " + new String(error.networkResponse.data), Toast.LENGTH_LONG);
 				toast.show();
 				adapter.notifyDataSetChanged();
 
 			}
 
 		});
-
 	}
+
+	private AlertDialog getDialogDeleteShare(final String deviceId, final String shareId) {
+
+		if (deleteShareDialog != null) return deleteShareDialog;
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(ListSharesActivity.this);
+
+		builder
+						.setTitle("Delete Share")
+						.setMessage("Are you sure you want to stop sharing this device?");
+
+
+		builder.setPositiveButton("Delete Share", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int id) {
+
+				service.deleteDeviceShareAsync(deviceId, shareId, new Service.APICallback() {
+					@Override
+					public void onSuccess(JSONObject result) {
+
+						// sample response
+						// {"data":{"id":"6827a4434cda4a7ea5157c1b58ff95f4"}
+
+						Log.d("App", "successfully deleted with response: " + result);
+
+					}
+
+					@Override
+					public void onError(VolleyError error) {
+
+						Log.d("App", "error while deleting with response: " + error);
+
+					}
+				});
+
+			}
+		})
+						.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int id) {
+								// cancel
+							}
+						});
+
+		deleteShareDialog = builder.create();
+		return deleteShareDialog;
+	}
+
 }

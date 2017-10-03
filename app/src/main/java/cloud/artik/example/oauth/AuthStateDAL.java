@@ -23,25 +23,14 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.Gson;
-
 import net.openid.appauth.AuthState;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import cloud.artik.model.Device;
-import cloud.artik.model.User;
-
-// Tracking authorization state and storing into the persistent storage
 public class AuthStateDAL {
 
     private static final String AUTH_PREFERENCES_NAME = "AuthStatePreference";
-    private static final String USER_PREFERENCES_NAME = "UserStatePreference";
-    private static final String DEVICE_PREFERENCES_NAME = "DEVICE_STATE";
     private static final String AUTH_STATE = "AUTH_STATE";
-    private static final String USER_STATE = "USER_STATE";
-    private static final String DEVICE_STATE = "DEVICE_STATE";
 
     @NonNull
     private  Activity activity;
@@ -70,44 +59,6 @@ public class AuthStateDAL {
                 .putString(AUTH_STATE, state.jsonSerializeString())
                 .apply();
     }
-
-
-    public void writeUserState(@NonNull User state) {
-        SharedPreferences authPrefs = activity.getSharedPreferences(USER_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        authPrefs.edit()
-                .putString(USER_STATE, new Gson().toJson(state))
-                .apply();
-    }
-
-    public User readUserState() {
-        SharedPreferences authPrefs = activity.getSharedPreferences(USER_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        String stateStr = authPrefs.getString(USER_STATE, null);
-        if (!TextUtils.isEmpty(stateStr)) {
-            Log.d("MyApp", "Serializing this data to User class:" + stateStr);
-            User user = new Gson().fromJson(stateStr, User.class);
-            return user;
-        }
-        return new User();
-    }
-
-    public void writeDeviceState(@NonNull Device state) {
-        SharedPreferences authPrefs = activity.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        authPrefs.edit()
-                .putString(DEVICE_STATE, new Gson().toJson(state))
-                .apply();
-    }
-
-    public Device readDeviceState() {
-        SharedPreferences authPrefs = activity.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        String stateStr = authPrefs.getString(DEVICE_STATE, null);
-        if (!TextUtils.isEmpty(stateStr)) {
-            Log.d("MyApp", "Serializing this data to Device class:" + stateStr);
-            Device device = new Gson().fromJson(stateStr, Device.class);
-            return device;
-        }
-        return new Device();
-    }
-
 
     public void clearAuthState() {
         activity.getSharedPreferences(AUTH_PREFERENCES_NAME, Context.MODE_PRIVATE)
