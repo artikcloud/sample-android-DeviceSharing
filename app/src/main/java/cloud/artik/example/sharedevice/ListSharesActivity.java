@@ -103,7 +103,7 @@ public class ListSharesActivity extends AppCompatActivity {
 
                 System.out.println(String.format("Position %s, data: %s", position, shareId));
 
-                AlertDialog dialog = getDialogDeleteShare(deviceId, shareId);
+                AlertDialog dialog = getDialogDeleteShare(deviceId, shareId, position);
                 dialog.show();
 
             }
@@ -118,7 +118,8 @@ public class ListSharesActivity extends AppCompatActivity {
 
     }
 
-    private AlertDialog getDialogDeleteShare(final String deviceId, final String shareId) {
+    private AlertDialog getDialogDeleteShare(
+            final String deviceId, final String shareId, final int position) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ListSharesActivity.this);
 
@@ -140,7 +141,9 @@ public class ListSharesActivity extends AppCompatActivity {
 
                         Log.d("App", "successfully deleted with response: " + result);
 
-                        getSharesList();
+                        adapter.remove(adapter.getItem(position));
+
+                        showResponse(result.toString());
                     }
 
                     @Override

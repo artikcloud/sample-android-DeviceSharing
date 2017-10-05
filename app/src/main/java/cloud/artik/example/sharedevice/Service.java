@@ -157,7 +157,6 @@ class Service {
 
     }
 
-    //body requires "email": sentToEmailAddress per API spec
     void deleteDeviceShareAsync(String deviceId, String shareId, APICallback callback) {
 
         String path = String.format("/devices/%s/shares/%s", deviceId, shareId);
