@@ -34,160 +34,157 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
-import net.openid.appauth.AuthState;
-
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
-import java.util.ListIterator;
 import java.util.Map;
 
-import cloud.artik.client.JSON;
 import cloud.artik.example.oauth.AuthStateDAL;
 import cloud.artik.model.Device;
-import cloud.artik.model.DeviceShareInfo;
-import cloud.artik.model.User;
 
 
-public class Service {
-
-	private Activity context = null;
-
-	private static final String API_URL = "https://api.artik.cloud/v1.1";
-
-	//used to get / retrieve values from shared prefererences
-	private static final String DEVICE_PREFERENCES_NAME = "DEVICE_STATE";
-	private static final String DEVICE_STATE = "DEVICE_STATE";
-
-	Service(Activity context) {
-		this.context = context;
-	}
-
-	public interface APICallback {
-		void onSuccess(JSONObject result);
-
-		void onError(VolleyError error);
-	}
-
-	public void getUserProfileAsync(final APICallback callback) {
-
-		String path = "/users/self";
-		JSONObject body = null;
-
-		makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
-
-	}
-
-	public void createDeviceAsync(JSONObject body, APICallback callback) {
-
-		String path = "/devices";
-		makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
-	}
-
-	public void shareDeviceAsync(String deviceId, JSONObject body, APICallback callback) {
-
-		String path = String.format("/devices/%s/shares", deviceId);
-		makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
-	}
+class Service {
 
 
-	public void listDeviceSharesAsync(String deviceId, APICallback callback) {
+    private static final String API_URL = "https://api.artik.cloud/v1.1";
 
-		String path = String.format("/devices/%s/shares", deviceId);
-		JSONObject body = null;
-		makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
-
-	}
-
-	//body requires "email": sentToEmailAddress per API spec
-	public void deleteDeviceShareAsync(String deviceId, String shareId, APICallback callback) {
-
-		String path = String.format("/devices/%s/shares/%s", deviceId, shareId);
-		JSONObject body = null;
-		makeAPICallAsync(API_URL + path, Request.Method.DELETE, body, callback);
-	}
-
-	public void makeAPICallAsync(String url, int requestMethod, JSONObject body, final APICallback callback) {
+    //used to get / retrieve values from shared prefererences
+    private static final String DEVICE_PREFERENCES_NAME = "DEVICE_STATE";
+    private static final String DEVICE_STATE = "DEVICE_STATE";
 
 
-		AuthStateDAL authState = new AuthStateDAL(context);
+    private Activity context = null;
 
-		Response.Listener<JSONObject> successListener = new Response.Listener<JSONObject>() {
-
-			@Override
-			public void onResponse(JSONObject response) {
-
-				callback.onSuccess(response);
-			}
-
-		};
-
-		Response.ErrorListener errorListener = new Response.ErrorListener() {
-
-			@Override
-			public void onErrorResponse(VolleyError error) {
-
-				if (error.networkResponse == null) {
-
-					if (error.getClass().equals(TimeoutError.class)) {
-
-						//timeout error
-						Toast.makeText(context, "Request Timed Out. Check your network connection.",
-										Toast.LENGTH_LONG).show();
-					}
-
-				}
-
-				if (error.networkResponse != null && error.networkResponse.data != null) {
-					Log.d("App Error", "Error description:" + (new String(error.networkResponse.data)));
-					callback.onError(error);
-				}
-
-			}
-		};
-
-		JsonObjectRequest jsonRequest =
-						new JsonObjectRequest(requestMethod, url, body, successListener, errorListener) {
-
-							@Override
-							public Map<String, String> getHeaders() throws AuthFailureError {
-
-								AuthStateDAL authState = new AuthStateDAL(context);
-								Map<String, String> params = new HashMap<String, String>();
-								params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
-								params.put("Content-type", "application/json; charset=utf-8");
+    final AuthStateDAL authState;
 
 
-								return params;
+    interface APICallback {
 
-							}
-						};
+        void onSuccess(JSONObject result);
+        void onError(VolleyError error);
+    }
 
-		RequestQueue requestQueue = Volley.newRequestQueue(context);
-		requestQueue.add(jsonRequest);
-	}
+    Service(Activity context) {
+        this.context = context;
+        authState = new AuthStateDAL(context);
+    }
+
+    private void makeAPICallAsync(String url, int requestMethod, JSONObject body, final APICallback callback) {
+
+        Toast.makeText(context, String.format("Making API call: %s", url),
+                Toast.LENGTH_SHORT).show();
+
+        Response.Listener<JSONObject> successListener = new Response.Listener<JSONObject>() {
+
+            @Override
+            public void onResponse(JSONObject response) {
+
+                callback.onSuccess(response);
+            }
+
+        };
+
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+                if (error.networkResponse == null) {
+
+                    if (error.getClass().equals(TimeoutError.class)) {
+
+                        //timeout error
+                        Toast.makeText(context, "Request Timed Out. Check your network connection.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                }
+
+                if (error.networkResponse != null && error.networkResponse.data != null) {
+                    Log.d("App Error", "Error description:" + (new String(error.networkResponse.data)));
+                    callback.onError(error);
+                }
+
+            }
+        };
+
+        JsonObjectRequest jsonRequest =
+                new JsonObjectRequest(requestMethod, url, body, successListener, errorListener) {
+
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+
+                        Map<String, String> params = new HashMap<String, String>();
+                        params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
+                        params.put("Content-type", "application/json; charset=utf-8");
 
 
-	//cache for storing the device (ie: deviceId) created for this demo
-	public void writeDeviceState(@NonNull Device state) {
-		SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
-		authPrefs.edit()
-						.putString(DEVICE_STATE, new Gson().toJson(state))
-						.apply();
-	}
+                        return params;
 
-	//cache for retrieving the device (ie: deviceId) created for this demo
-	public Device readDeviceState() {
-		SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
-		String stateStr = authPrefs.getString(DEVICE_STATE, null);
-		if (!TextUtils.isEmpty(stateStr)) {
-			Log.d("MyApp", "Serializing this data to Device class:" + stateStr);
-			Device device = new Gson().fromJson(stateStr, Device.class);
-			return device;
-		}
-		return new Device();
-	}
+                    }
+                };
 
+        RequestQueue requestQueue = Volley.newRequestQueue(context);
+        requestQueue.add(jsonRequest);
+    }
+
+    void getUserProfileAsync(final APICallback callback) {
+
+        String path = "/users/self";
+        JSONObject body = null;
+        makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
+
+    }
+
+    void createDeviceAsync(JSONObject body, APICallback callback) {
+
+        String path = "/devices";
+        makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
+    }
+
+    void shareDeviceAsync(String deviceId, JSONObject body, APICallback callback) {
+
+        String path = String.format("/devices/%s/shares", deviceId);
+        makeAPICallAsync(API_URL + path, Request.Method.POST, body, callback);
+    }
+
+
+    void listDeviceSharesAsync(String deviceId, APICallback callback) {
+
+        String path = String.format("/devices/%s/shares", deviceId);
+        JSONObject body = null;
+        makeAPICallAsync(API_URL + path, Request.Method.GET, body, callback);
+
+    }
+
+    //body requires "email": sentToEmailAddress per API spec
+    void deleteDeviceShareAsync(String deviceId, String shareId, APICallback callback) {
+
+        String path = String.format("/devices/%s/shares/%s", deviceId, shareId);
+        JSONObject body = null;
+        makeAPICallAsync(API_URL + path, Request.Method.DELETE, body, callback);
+    }
+
+    //cache for storing the device (ie: deviceId) created for this demo
+    void writeDeviceState(@NonNull Device state) {
+        SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        authPrefs.edit()
+                .putString(DEVICE_STATE, new Gson().toJson(state))
+                .apply();
+    }
+
+    //cache for retrieving the device (ie: deviceId / name) created for this demo
+    Device readDeviceState() {
+        SharedPreferences authPrefs = context.getSharedPreferences(DEVICE_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        String stateStr = authPrefs.getString(DEVICE_STATE, null);
+        Device device = new Device();
+
+        if (!TextUtils.isEmpty(stateStr)) {
+            Log.d("MyApp", "Serializing this data to Device class:" + stateStr);
+            device = new Gson().fromJson(stateStr, Device.class);
+        }
+
+        return device;
+    }
 
 }

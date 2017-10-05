@@ -24,7 +24,8 @@ Follow [these instructions](https://developer.artik.cloud/documentation/tools/we
 
 [Make a note of your client ID](https://developer.artik.cloud/documentation/tools/web-tools.html#how-to-find-your-application-id), which you will need in the next step.
 
-3. Set the [Device Type Permission to the Application](https://developer.artik.cloud/dashboard/applications).  For this sample we'll add the **Device Type: Demo Fire Sensor** with **Read and Write** permission.
+3. Set the User Profile access to **Read and Write** permissions.   Sharing a device requires both these permissions.
+4. Set the [Device Type Permission to the Application](https://developer.artik.cloud/dashboard/applications).  For this sample **add** the device type: Demo Fire Sensor (unique name: cloud.artik.sample.demofiresensor) with **Read And Write** permissions
 
 ### Set up your Android project
 
@@ -107,6 +108,8 @@ You can also share directly from the User portal by clicking on the "lightning b
 10. To Revoke or Remove the share, go back to the Sample Application.    Click on the List Share Status button again.   Click on the share item to delete the share.
 
 ![GitHub Logo](./img/delete_share@0,5x.png)
+
+11. After running the sample, clean up by deleting any Demo Fire Sensor devices you added to your account. You can do this in the Devices menu at [https://my.artik.cloud](https://my.artik.cloud/)
 
 More about ARTIK Cloud
 ---------------

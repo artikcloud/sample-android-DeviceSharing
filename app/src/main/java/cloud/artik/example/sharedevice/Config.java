@@ -18,15 +18,15 @@ package cloud.artik.example.sharedevice;
 
 public class Config {
 
-	//TODO:  Replace clientID
-	public static final String CLIENT_ID = "Your Application Client Id";
+    //TODO:  Replace clientID
+    public static final String CLIENT_ID = "Your Application Client Id";
 
-	// MUST be consistent with "AUTH REDIRECT URL" of your application.
-	// Set up at developer.artik.cloud for your Application
-	public static final String REDIRECT_URI = "cloud.artik.example.oauth://oauth2callback";
+    // MUST be consistent with "AUTH REDIRECT URL" of your application.
+    // Set up at developer.artik.cloud for your Application
+    public static final String REDIRECT_URI = "cloud.artik.example.oauth://oauth2callback";
 
-	// Device Types accessible by the Application
-	// Sample uses: cloud.artik.sample.demofiresensor
-	public static final String DEVICE_TYPE_ID = "dtce45703593274ba0b4feedb83bc152d8";
+    // Device Types accessible by the Application
+    // Sample uses: cloud.artik.sample.demofiresensor
+    public static final String DEVICE_TYPE_ID = "dtce45703593274ba0b4feedb83bc152d8";
 
 }

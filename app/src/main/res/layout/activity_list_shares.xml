@@ -8,12 +8,37 @@
 
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <ListView
             android:id="@+id/shares_list"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"></ListView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="API Response: "
+            android:textStyle="bold"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"/>
+
+        <ScrollView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:fadeScrollbars="false"
+            android:scrollbarAlwaysDrawVerticalTrack="true" >
+
+            <TextView
+                android:id="@+id/textview_api_response"
+                android:gravity="left"
+                android:layout_height="fill_parent"
+                android:layout_width="fill_parent"
+                android:scrollbarAlwaysDrawVerticalTrack="true"
+                android:fadeScrollbars="false"
+                android:text=""></TextView>
+        </ScrollView>
 
     </LinearLayout>
 

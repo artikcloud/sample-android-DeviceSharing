@@ -13,9 +13,8 @@
         <activity
             android:name=".sharedevice.LoginActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/login_activity_screen_name"
-            android:theme="@style/Theme.AppCompat.Translucent"
-            android:launchMode="singleInstance">
+            android:launchMode="singleInstance"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="cloud.artik.example.oauth.ARTIKCLOUD_AUTHORIZATION_RESPONSE" />
             </intent-filter>
@@ -40,7 +39,6 @@
         </activity>
         <activity
             android:name=".sharedevice.DeviceActivity"
-            android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,7 +48,8 @@
         <activity
             android:name=".sharedevice.ListSharesActivity"
             android:label="DeviceSharesActivity"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar">
+        </activity>
     </application>
 
 </manifest>

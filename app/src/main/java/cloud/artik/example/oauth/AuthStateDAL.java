@@ -33,7 +33,7 @@ public class AuthStateDAL {
     private static final String AUTH_STATE = "AUTH_STATE";
 
     @NonNull
-    private  Activity activity;
+    private final Activity activity;
 
     public AuthStateDAL(@NonNull Activity activity) {
         this.activity = activity;
@@ -46,7 +46,7 @@ public class AuthStateDAL {
         if (!TextUtils.isEmpty(stateStr)) {
             try {
                 return AuthState.jsonDeserialize(stateStr);
-            } catch(JSONException ignore) {
+            } catch (JSONException ignore) {
                 Log.w("AUTH", ignore.getMessage(), ignore);
             }
         }

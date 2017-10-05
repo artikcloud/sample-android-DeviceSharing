@@ -17,19 +17,13 @@
 package cloud.artik.example.sharedevice;
 
 import android.app.PendingIntent;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.customtabs.CustomTabsIntent;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.Toast;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
@@ -38,7 +32,6 @@ import net.openid.appauth.AuthorizationResponse;
 import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.TokenResponse;
 
-import cloud.artik.example.R;
 import cloud.artik.example.oauth.AuthHelper;
 import cloud.artik.example.oauth.AuthStateDAL;
 
@@ -48,205 +41,125 @@ import static cloud.artik.example.oauth.AuthHelper.USED_INTENT;
 
 public class LoginActivity extends AppCompatActivity {
 
-	public static String accessToken = "";
-	public static String refreshToken = "";
-	public static String expiresAt = "";
+    static final String LOG_TAG = "LoginActivity";
 
-	Button mButtonSignIn;
-	Button mButtonContinue;
+    AuthorizationService mAuthorizationService;
+    AuthStateDAL mAuthStateDAL;
 
-	static final String LOG_TAG = "LoginActivity";
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "Entering onCreate ...");
+        super.onCreate(savedInstanceState);
 
-	AuthorizationService mAuthorizationService;
-	AuthStateDAL mAuthStateDAL;
+        mAuthorizationService = new AuthorizationService(this);
+        mAuthStateDAL = new AuthStateDAL(this);
+
+        doAuth();
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        super.onDestroy();
+        mAuthorizationService.dispose();
+
+    }
 
 
-	//TODO:
-	@Override
-	protected void onDestroy() {
+    // File OAuth call with Authorization Code method
+    // https://developer.artik.cloud/documentation/getting-started/authentication.html#authorization-code-method
+    private void doAuth() {
+        AuthorizationRequest authorizationRequest = AuthHelper.createAuthorizationRequest();
 
-		super.onDestroy();
-
-		mAuthorizationService.dispose();
-
-	}
-
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		Log.d(LOG_TAG, "Entering onCreate ...");
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_login);
-
-		mAuthorizationService = new AuthorizationService(this);
-		mButtonSignIn = (Button) findViewById(R.id.btn_login);
-		mButtonContinue = (Button) findViewById(R.id.btn_continue);
-
-		mButtonSignIn.setVisibility(View.VISIBLE);
-		mButtonContinue.setVisibility(View.INVISIBLE);
-
-		mButtonSignIn.setOnClickListener(new Button.OnClickListener() {
-
-			@Override
-			public void onClick(View view) {
-				doAuth();
-			}
-
-		});
-
-		mButtonContinue.setOnClickListener(new Button.OnClickListener() {
-			@Override
-			public void onClick(View view) {
-
-				Intent intent = new Intent(LoginActivity.this, DeviceActivity.class);
-				startActivity(intent);
-
-			}
-
-		});
-
-		mAuthStateDAL = new AuthStateDAL(this);
-
-		doAuth();
-	}
-
-	// File OAuth call with Authorization Code method
-	// https://developer.artik.cloud/documentation/getting-started/authentication.html#authorization-code-method
-	private void doAuth() {
-		AuthorizationRequest authorizationRequest = AuthHelper.createAuthorizationRequest();
-
-		PendingIntent authorizationIntent = PendingIntent.getActivity(
-						this,
-						authorizationRequest.hashCode(),
-						new Intent(INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE, null, this, LoginActivity.class),
-						0);
+        PendingIntent authorizationIntent = PendingIntent.getActivity(
+                this,
+                authorizationRequest.hashCode(),
+                new Intent(INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE, null, this, LoginActivity.class),
+                0);
 
         /* request sample with custom tabs */
-		CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
-		CustomTabsIntent customTabsIntent = builder.build();
+        CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+        CustomTabsIntent customTabsIntent = builder.build();
 
-		mAuthorizationService.performAuthorizationRequest(authorizationRequest, authorizationIntent, customTabsIntent);
+        mAuthorizationService.performAuthorizationRequest(authorizationRequest, authorizationIntent, customTabsIntent);
 
-	}
+    }
 
-	@Override
-	protected void onStart() {
-		Log.d(LOG_TAG, "Entering onStart ...");
-		super.onStart();
-		checkIntent(getIntent());
-	}
+    @Override
+    protected void onStart() {
+        Log.d(LOG_TAG, "Entering onStart ...");
+        super.onStart();
+        checkIntent(getIntent());
+    }
 
-	@Override
-	protected void onNewIntent(Intent intent) {
-		checkIntent(intent);
-	}
+    @Override
+    protected void onNewIntent(Intent intent) {
+        checkIntent(intent);
+    }
 
-	private void checkIntent(@Nullable Intent intent) {
+    private void checkIntent(@Nullable Intent intent) {
 
-		Log.d(LOG_TAG, "Entering checkIntent ...");
-		if (intent != null && intent.getAction() != null) {
-			String action = intent.getAction();
+        Log.d(LOG_TAG, "Entering checkIntent ...");
+        if (intent != null && intent.getAction() != null) {
+            String action = intent.getAction();
 
-			if (action == null) return;
+            if (action == null) return;
 
-			switch (action) {
-				case INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE:
-					Log.d(LOG_TAG, "checkIntent action = " + action
-									+ " intent.hasExtra(USED_INTENT) = " + intent.hasExtra(USED_INTENT));
-					if (!intent.hasExtra(USED_INTENT)) {
-						handleAuthorizationResponse(intent);
-						intent.putExtra(USED_INTENT, true);
-					}
-					break;
-				default:
-					Log.w(LOG_TAG, "checkIntent action = " + action);
-					// do nothing
-			}
-		} else {
-			Log.w(LOG_TAG, "checkIntent intent is null!");
-		}
-	}
+            switch (action) {
+                case INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE:
+                    Log.d(LOG_TAG, "checkIntent action = " + action
+                            + " intent.hasExtra(USED_INTENT) = " + intent.hasExtra(USED_INTENT));
+                    if (!intent.hasExtra(USED_INTENT)) {
+                        handleAuthorizationResponse(intent);
+                        intent.putExtra(USED_INTENT, true);
+                    }
+                    break;
+                default:
+                    Log.w(LOG_TAG, "checkIntent action = " + action);
+                    // do nothing
+            }
+        } else {
+            Log.w(LOG_TAG, "checkIntent intent is null!");
+        }
+    }
 
-	private void handleAuthorizationResponse(@NonNull Intent intent) {
+    private void handleAuthorizationResponse(@NonNull Intent intent) {
 
-		AuthorizationResponse response = AuthorizationResponse.fromIntent(intent);
-		AuthorizationException error = AuthorizationException.fromIntent(intent);
-		Log.i(LOG_TAG, "Entering handleAuthorizationResponse with response from Intent = " + response.jsonSerialize().toString());
+        AuthorizationResponse response = AuthorizationResponse.fromIntent(intent);
+        AuthorizationException error = AuthorizationException.fromIntent(intent);
 
-		if (response != null) {
+        if (response != null) {
 
-			if (response.authorizationCode != null) { // Authorization Code method: succeeded to get code
+            Log.i(LOG_TAG, "Entering handleAuthorizationResponse with response from Intent = " + response.jsonSerialize().toString());
 
-				final AuthState authState = new AuthState(response, error);
-				Log.i(LOG_TAG, "Received code = " + response.authorizationCode + "\n make another call to get token ...");
+            if (response.authorizationCode != null) { // Authorization Code method: succeeded to get code
 
-				// File 2nd call in Authorization Code method to get the token
-				mAuthorizationService.performTokenRequest(response.createTokenExchangeRequest(), new AuthorizationService.TokenResponseCallback() {
-					@Override
-					public void onTokenRequestCompleted(@Nullable TokenResponse tokenResponse, @Nullable AuthorizationException exception) {
+                final AuthState authState = new AuthState(response, error);
+                Log.i(LOG_TAG, "Received code = " + response.authorizationCode + "\n make another call to get token ...");
 
-						authState.update(tokenResponse, exception);
-						mAuthStateDAL.writeAuthState(authState); //store into persistent storage for use later
-						String text = String.format("Received token response [%s]", tokenResponse.jsonSerializeString());
-						Log.i(LOG_TAG, text);
-						accessToken = tokenResponse.accessToken;
-						expiresAt = tokenResponse.accessTokenExpirationTime.toString();
-						refreshToken = tokenResponse.refreshToken;
+                // File 2nd call in Authorization Code method to get the token
+                mAuthorizationService.performTokenRequest(response.createTokenExchangeRequest(), new AuthorizationService.TokenResponseCallback() {
+                    @Override
+                    public void onTokenRequestCompleted(@Nullable TokenResponse tokenResponse, @Nullable AuthorizationException exception) {
 
-						if (tokenResponse != null) onFinishTokenRequest(tokenResponse);
-						if (exception != null) onErrorTokenRequest(exception);
-					}
-				});
-			} else { // come here w/o authorization code. For example, signup finish and user clicks "Back to login"
-				Log.d(LOG_TAG, "additionalParameter = " + response.additionalParameters.toString());
+                        authState.update(tokenResponse, exception);
+                        mAuthStateDAL.writeAuthState(authState); //store into persistent storage for use later
+                        String text = String.format("Received token response [%s]", (tokenResponse != null) ? tokenResponse.jsonSerializeString() : null);
+                        Log.i(LOG_TAG, text);
+                        finish();
+                    }
+                });
+            } else {
 
-				if (response.additionalParameters.get("status").equalsIgnoreCase("login_request")) {
-					// ARTIK Cloud instructs the app to display a sign-in form
-					doAuth();
-				} else {
-					Log.d(LOG_TAG, response.jsonSerialize().toString());
-				}
-			}
-
-		} else {
-			Log.w(LOG_TAG, "Authorization Response is null ");
-			Log.d(LOG_TAG, "Authorization Exception = " + error);
-		}
-	}
+                finish();
+            }
 
 
-	private void onFinishTokenRequest(TokenResponse tokenResponse) {
+        } else {
+            Log.w(LOG_TAG, "Authorization Response is null ");
+            Log.d(LOG_TAG, "Authorization Exception = " + error);
+            finish();
+        }
+    }
 
-
-		mButtonSignIn.setVisibility(View.INVISIBLE);
-		mButtonContinue.setVisibility(View.VISIBLE);
-
-		Intent intent = new Intent(LoginActivity.this, DeviceActivity.class);
-		startActivity(intent);
-		finish();
-
-	}
-
-	private void onErrorTokenRequest(AuthorizationException exception) {
-
-		mButtonSignIn.setVisibility(View.VISIBLE);
-		mButtonContinue.setVisibility(View.INVISIBLE);
-
-		Context context = getApplicationContext();
-		Log.w(LOG_TAG, "Token Exchange failed", exception);
-		CharSequence text = "Token Exchange failed";
-		int duration = Toast.LENGTH_LONG;
-		Toast toast = Toast.makeText(context, text, duration);
-		toast.show();
-
-	}
-
-	public void showAuthInfo() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage("accessToken = " + accessToken + "\n" + "refreshToken = " + refreshToken + "\n" + "expiresAt = " + expiresAt + "\n").setCancelable(false)
-						.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog, int id) {
-							}
-						}).show();
-
-	}
 }

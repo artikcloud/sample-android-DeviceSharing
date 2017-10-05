@@ -30,7 +30,7 @@ public class AuthHelper {
     public static final String ARTIKCLOUD_TOKEN_URI = "https://accounts.artik.cloud/token";
 
     public static final String INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE
-             = "cloud.artik.example.oauth.ARTIKCLOUD_AUTHORIZATION_RESPONSE";
+            = "cloud.artik.example.oauth.ARTIKCLOUD_AUTHORIZATION_RESPONSE";
     public static final String USED_INTENT = "USED_INTENT";
 
     public static AuthorizationRequest createAuthorizationRequest() {
