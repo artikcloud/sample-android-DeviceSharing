@@ -55,7 +55,7 @@ class Service {
 
     private Activity context = null;
 
-    final AuthStateDAL authState;
+    private final AuthStateDAL authState;
 
 
     interface APICallback {
@@ -114,7 +114,7 @@ class Service {
                     @Override
                     public Map<String, String> getHeaders() throws AuthFailureError {
 
-                        Map<String, String> params = new HashMap<String, String>();
+                        Map<String, String> params = new HashMap<>();
                         params.put("Authorization", "Bearer " + authState.readAuthState().getAccessToken());
                         params.put("Content-type", "application/json; charset=utf-8");
 

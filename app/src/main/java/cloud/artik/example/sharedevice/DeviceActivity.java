@@ -45,14 +45,11 @@ import cloud.artik.model.User;
 
 public class DeviceActivity extends AppCompatActivity {
 
-    private static final int INDENT_LEVEL = 2;
     private Service service;
 
     private AuthStateDAL auth;
 
-    private final EditText sendToEmailView = null;
     private AlertDialog dialogShareDevice = null;
-    private AlertDialog dialogShareStatus = null;
     private Button buttonShareDevice = null;
     private Button buttonShareStatus = null;
     private Button buttonCreateDevice = null;
@@ -154,8 +151,6 @@ public class DeviceActivity extends AppCompatActivity {
             @Override
             public void onError(VolleyError error) {
 
-                String errorMessage = "";
-
                 printResponse("Please Login.", "Does not appear you are logged in or your token has expired.", apiResponseTextView);
 
                 buttonLogin.setVisibility(View.VISIBLE);
@@ -198,12 +193,11 @@ public class DeviceActivity extends AppCompatActivity {
                     body.put("name", deviceName);
                     body.put("manifestVersionPolicy", "LATEST");
 
-                } catch (JSONException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return;
 
                 }
-
                 service.createDeviceAsync(body, new Service.APICallback() {
 
                     @Override
@@ -212,19 +206,7 @@ public class DeviceActivity extends AppCompatActivity {
                         //sample response
                         //{"connected":true,"createdOn":1507003156000,"dtid":"dtce45703593274ba0b4feedb83bc152d8","id":"c35f2a4eb7ba45718f6715fecd0b297f","manifestVersion":1,"manifestVersionPolicy":"LATEST","name":"Sharing Demo A-56","needProviderAuth":false,"properties":{},"providerCredentials":{},"uid":"<redacted>"}
 
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-
-                                buttonCreateDevice.setEnabled(false);
-                                buttonShareDevice.setEnabled(true);
-                                buttonShareStatus.setEnabled(true);
-
-                            }
-                        });
-
-
+                        buttonStateAfterCreateDevice();
                         printSuccessResponse("createDeviceAsync()", result);
 
                         try {
@@ -401,70 +383,6 @@ public class DeviceActivity extends AppCompatActivity {
         return dialogShareDevice;
     }
 
-    private AlertDialog getShareStatusDialog() {
-
-        if (dialogShareStatus != null) return dialogShareStatus;
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(DeviceActivity.this);
-
-        builder.setMessage("Device Share Status")
-                .setTitle("Device Share");
-
-        builder.setView(sendToEmailView)
-
-                .setPositiveButton("Send Share", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-
-                        // list all shares for device
-                        service.listDeviceSharesAsync(service.readDeviceState().getId(), new Service.APICallback() {
-
-                            @Override
-                            public void onSuccess(JSONObject result) {
-
-                                Log.d("app", "Success — Shares for device: " + result.toString());
-
-                            }
-
-                            @Override
-                            public void onError(VolleyError error) {
-
-                                Log.d("app", "Error — Shares for device: " + error.toString());
-
-                            }
-                        });
-
-                    }
-                })
-
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-
-                    public void onClick(DialogInterface dialog, int id) {
-                        // cancel
-                    }
-                });
-
-        dialogShareStatus = builder.create();
-        return dialogShareStatus;
-    }
-
-    private String formatResponse(String title, JSONObject json) {
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(title).append("\n");
-
-        try {
-
-            builder.append(json.toString(INDENT_LEVEL));
-
-        } catch (JSONException e) {
-
-            e.printStackTrace();
-
-        }
-
-        return builder.toString();
-    }
 
     private void printResponse(final String title, final String description, final TextView view) {
 
@@ -479,14 +397,6 @@ public class DeviceActivity extends AppCompatActivity {
 
     }
 
-    private void printResponse(final String title, final JSONObject description, final TextView view) {
-
-        try {
-            printResponse(title, description.toString(INDENT_LEVEL), view);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
 
     private void printSuccessResponse(String title, JSONObject result) {
 

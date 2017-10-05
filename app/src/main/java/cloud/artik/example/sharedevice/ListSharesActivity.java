@@ -26,7 +26,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.VolleyError;
 
@@ -73,8 +72,8 @@ public class ListSharesActivity extends AppCompatActivity {
     private void initListView() {
 
         listView = (ListView) findViewById(R.id.shares_list);
-        listItems = new ArrayList<String>();
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
+        listItems = new ArrayList<>();
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listItems);
 
         listItems.add("Please wait ... ");
         listView.setAdapter(adapter);
@@ -84,8 +83,6 @@ public class ListSharesActivity extends AppCompatActivity {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-
 
                 JSONObject shareStatusInfo;
 

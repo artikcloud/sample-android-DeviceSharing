@@ -26,8 +26,8 @@ import cloud.artik.example.sharedevice.Config;
 
 public class AuthHelper {
 
-    public static final String ARTIKCLOUD_AUTHORIZE_URI = "https://accounts.artik.cloud/signin";
-    public static final String ARTIKCLOUD_TOKEN_URI = "https://accounts.artik.cloud/token";
+    private static final String ARTIKCLOUD_AUTHORIZE_URI = "https://accounts.artik.cloud/signin";
+    private static final String ARTIKCLOUD_TOKEN_URI = "https://accounts.artik.cloud/token";
 
     public static final String INTENT_ARTIKCLOUD_AUTHORIZATION_RESPONSE
             = "cloud.artik.example.oauth.ARTIKCLOUD_AUTHORIZATION_RESPONSE";
